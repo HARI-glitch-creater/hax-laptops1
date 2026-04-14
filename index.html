@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>HAX Laptops</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --g1:0 0 8px rgba(255,255,255,.9),0 0 22px rgba(255,255,255,.4);
+  --g2:0 0 14px #fff,0 0 44px rgba(255,255,255,.5),0 0 90px rgba(255,255,255,.2);
+  --g3:0 0 22px #fff,0 0 65px rgba(255,255,255,.6),0 0 130px rgba(255,255,255,.3);
+}
+html{scroll-behavior:smooth;}
+body{background:#000;color:#fff;font-family:'Rajdhani',sans-serif;overflow-x:hidden;cursor:none;}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,.01) 2px,rgba(255,255,255,.01) 4px);pointer-events:none;z-index:9980;}
+
+/* ── CURSOR ── */
+#cur{position:fixed;width:8px;height:8px;background:#fff;border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);box-shadow:var(--g2);}
+#cur-r{position:fixed;width:30px;height:30px;border:1px solid rgba(255,255,255,.35);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);}
+@media(hover:none){#cur,#cur-r{display:none;}}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:800;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 clamp(.9rem,3vw,2.2rem);height:60px;
+  background:rgba(0,0,0,.65);
+  backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);
+  border-bottom:1px solid rgba(255,255,255,.09);
+  box-shadow:0 4px 40px rgba(0,0,0,.8);
+  opacity:0;transform:translateY(-12px);
+  transition:opacity .7s ease,transform .7s ease;
+}
+nav.vis{opacity:1;transform:translateY(0);}
+.nav-logo{font-family:'Bebas Neue';font-size:clamp(1.3rem,3vw,1.85rem);letter-spacing:.22em;color:#fff;text-shadow:var(--g2);cursor:pointer;user-select:none;}
+.nav-r{display:flex;align-items:center;gap:clamp(.28rem,.7vw,.6rem);}
+.ni{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .25s;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);flex-shrink:0;font-size:.83rem;}
+.ni:hover{border-color:#fff;box-shadow:var(--g1);transform:scale(1.08);}
+.nbtn{font-family:'Rajdhani';font-weight:700;font-size:clamp(.64rem,.6vw+.42rem,.8rem);letter-spacing:.12em;padding:.38rem clamp(.5rem,1.1vw,.95rem);border-radius:4px;cursor:pointer;transition:all .25s;white-space:nowrap;}
+.ng{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.2);color:#fff;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);}
+.ng:hover{background:rgba(255,255,255,.14);border-color:#fff;box-shadow:var(--g1);}
+.ns{background:#fff;border:1px solid #fff;color:#000;font-weight:700;box-shadow:var(--g1);}
+.ns:hover{box-shadow:var(--g2);transform:translateY(-1px);}
+.c-wrap{position:relative;}
+.cbadge{position:absolute;top:-5px;right:-5px;background:#fff;color:#000;border-radius:50%;width:15px;height:15px;font-size:.5rem;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:var(--g1);display:none;}
+.uchip{display:flex;align-items:center;gap:.45rem;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:50px;padding:.28rem .7rem;font-size:.72rem;letter-spacing:.06em;color:rgba(255,255,255,.8);}
+.udot{width:6px;height:6px;border-radius:50%;background:#fff;box-shadow:var(--g1);}
+
+/* ═══════════════════════════════
+   HERO — CINEMATIC INTRO
+═══════════════════════════════ */
+.hero{
+  position:relative;width:100%;height:100svh;min-height:600px;
+  overflow:hidden;background:#000;
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* ── The 3D scene wrapper ── */
+#scene{
+  position:absolute;
+  width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;
+  perspective:1200px;
+  z-index:2;
+}
+
+/* ── Laptop wrapper: JS drives scale + translateY ── */
+#lw{
+  position:relative;
+  width:clamp(380px,58vw,720px);
+  transform-origin:50% 42%; /* aim at screen centre */
+  /* initial: lid closed → lid opens via CSS anim, then JS zooms */
+  opacity:0;
+  animation:laptopAppear 1.4s cubic-bezier(.2,0,.2,1) .6s forwards;
+  will-change:transform,opacity;
+}
+@keyframes laptopAppear{
+  from{opacity:0;transform:scale(.7) translateY(60px);}
+  to  {opacity:1;transform:scale(1)  translateY(0);}
+}
+
+/* REALISTIC LAPTOP SVG */
+#laptop-svg{width:100%;overflow:visible;filter:drop-shadow(0 40px 80px rgba(0,0,0,.9)) drop-shadow(0 0 40px rgba(255,255,255,.05));}
+
+/* Lid opens: rotateX from closed→open, perspective on lid group */
+#lid{
+  transform-origin:50% 97%;
+  animation:openLid 2s cubic-bezier(.3,1.4,.5,1) 1.3s both;
+  transform-box:fill-box;
+}
+@keyframes openLid{
+  0%  {transform:rotateX(86deg);}
+  100%{transform:rotateX(0deg);}
+}
+
+/* Screen content fades in as lid opens */
+#scr-content{animation:scrIn 1.2s ease 2.8s both;}
+@keyframes scrIn{from{opacity:0;}to{opacity:1;}}
+
+/* HAX text on the mini website inside screen */
+#hax-txt{animation:haxPop 1s cubic-bezier(.34,1.56,.64,1) 3.2s both;}
+@keyframes haxPop{from{opacity:0;transform:scale(.6);}to{opacity:1;transform:scale(1);}}
+
+/* Flash overlay as zoom completes */
+#flash{position:absolute;inset:0;z-index:12;background:#fff;opacity:0;pointer-events:none;animation:doFlash .5s ease 6.6s forwards;}
+@keyframes doFlash{0%{opacity:0;}35%{opacity:1;}100%{opacity:0;}}
+
+/* Hero ambient grid */
+.hgrid{position:absolute;inset:0;z-index:0;background-image:linear-gradient(rgba(255,255,255,.038) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.038) 1px,transparent 1px);background-size:52px 52px;mask-image:radial-gradient(ellipse 80% 70% at 50% 50%,#000 20%,transparent 100%);animation:gp 8s ease-in-out infinite;opacity:0;transition:opacity 1.2s ease;}
+.hgrid.vis{opacity:1;}
+@keyframes gp{0%,100%{opacity:.5;}50%{opacity:.9;}}
+.orb{position:absolute;border-radius:50%;filter:blur(110px);pointer-events:none;z-index:0;opacity:0;transition:opacity 1.5s ease;}
+.orb.vis{opacity:1;}
+.o1{width:500px;height:500px;background:radial-gradient(circle,rgba(255,255,255,.055),transparent);top:-15%;left:-10%;animation:of 9s ease-in-out infinite;}
+.o2{width:400px;height:400px;background:radial-gradient(circle,rgba(255,255,255,.04),transparent);bottom:0;right:-5%;animation:of 11s ease-in-out 3s infinite;}
+@keyframes of{0%,100%{transform:translateY(0);}50%{transform:translateY(-28px);}}
+.bk{position:absolute;z-index:3;width:clamp(24px,4vw,44px);height:clamp(24px,4vw,44px);opacity:0;transition:opacity 1s ease;}
+.bk.vis{opacity:.38;}
+.bk::before,.bk::after{content:'';position:absolute;background:#fff;box-shadow:var(--g1);}
+.bk::before{width:100%;height:2px;top:0;}
+.bk::after{width:2px;height:100%;top:0;}
+.bk-tl{top:clamp(3.5rem,8vh,5.5rem);left:clamp(.8rem,2.5vw,1.8rem);}
+.bk-tr{top:clamp(3.5rem,8vh,5.5rem);right:clamp(.8rem,2.5vw,1.8rem);transform:scaleX(-1);}
+.bk-bl{bottom:clamp(3rem,6vh,4.5rem);left:clamp(.8rem,2.5vw,1.8rem);transform:scaleY(-1);}
+.bk-br{bottom:clamp(3rem,6vh,4.5rem);right:clamp(.8rem,2.5vw,1.8rem);transform:scale(-1);}
+#spl{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.05) 0%,transparent 65%);pointer-events:none;z-index:1;transform:translate(-50%,-50%);opacity:0;transition:opacity 1.2s ease,left .1s,top .1s;}
+#spl.vis{opacity:1;}
+
+/* Hero CTA text block */
+.hcta{
+  position:absolute;bottom:clamp(3.5rem,9vh,7rem);left:0;right:0;
+  z-index:6;text-align:center;
+  padding:0 clamp(1rem,5vw,3rem);
+  opacity:0;transform:translateY(28px);
+  transition:opacity .9s ease,transform .9s ease;
+  pointer-events:none;
+}
+.hcta.vis{opacity:1;transform:translateY(0);pointer-events:all;}
+.he{font-size:clamp(.58rem,.45vw+.35rem,.68rem);letter-spacing:.4em;color:rgba(255,255,255,.38);text-transform:uppercase;margin-bottom:.9rem;}
+.ht{font-family:'Bebas Neue';font-size:clamp(3.2rem,8.5vw,7.5rem);line-height:.88;letter-spacing:.05em;margin-bottom:1.1rem;}
+.nw{display:block;color:#fff;text-shadow:var(--g3);animation:nf 8s ease-in-out 9s infinite;}
+.ow{display:block;color:transparent;-webkit-text-stroke:1.5px rgba(255,255,255,.52);}
+@keyframes nf{0%,100%{text-shadow:var(--g3);}92%{text-shadow:var(--g3);}93%{text-shadow:none;}94.5%{text-shadow:var(--g3);}96%{text-shadow:none;}97.5%{text-shadow:var(--g3);}}
+.hs{font-size:clamp(.83rem,.8vw+.5rem,.98rem);color:rgba(255,255,255,.4);max-width:420px;margin:0 auto 2rem;line-height:1.7;letter-spacing:.04em;}
+.hbtn{display:inline-flex;align-items:center;gap:.65rem;font-family:'Bebas Neue';font-size:clamp(.78rem,.8vw+.46rem,.92rem);letter-spacing:.25em;padding:clamp(.72rem,1.5vw,.92rem) clamp(1.5rem,3vw,2.5rem);background:rgba(255,255,255,.07);border:1px solid #fff;border-radius:3px;color:#fff;cursor:pointer;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:var(--g2),inset 0 1px 0 rgba(255,255,255,.18);transition:all .3s;position:relative;overflow:hidden;}
+.hbtn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.14),transparent 60%);opacity:0;transition:opacity .3s;}
+.hbtn:hover{background:rgba(255,255,255,.14);box-shadow:var(--g3),inset 0 1px 0 rgba(255,255,255,.2);transform:translateY(-3px);}
+.hbtn:hover::before{opacity:1;}
+.arr{transition:transform .3s;}.hbtn:hover .arr{transform:translateX(5px);}
+.si2{position:absolute;bottom:1.5rem;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:.4rem;z-index:6;opacity:0;transition:opacity 1s ease;}
+.si2.vis{opacity:1;}
+.si2 span{font-size:.55rem;letter-spacing:.3em;color:rgba(255,255,255,.22);}
+.sm2{width:19px;height:31px;border:1px solid rgba(255,255,255,.22);border-radius:11px;display:flex;justify-content:center;padding-top:5px;}
+.sd2{width:3px;height:6px;background:#fff;border-radius:2px;box-shadow:var(--g1);animation:sda 2s ease-in-out infinite;}
+@keyframes sda{0%{transform:translateY(0);opacity:1;}100%{transform:translateY(8px);opacity:0;}}
+#hcv{position:absolute;inset:0;z-index:1;opacity:0;transition:opacity 2s ease;}
+#hcv.vis{opacity:1;}
+
+/* ── SECTION ── */
+.sh{text-align:center;padding:clamp(3rem,7vw,5.5rem) 1.5rem clamp(1.5rem,3.5vw,2.5rem);}
+.se{font-size:.62rem;letter-spacing:.4em;color:rgba(255,255,255,.28);text-transform:uppercase;margin-bottom:.75rem;}
+.st{font-family:'Bebas Neue';font-size:clamp(1.9rem,5.5vw,3.7rem);letter-spacing:.1em;text-shadow:var(--g2);}
+
+/* ── LOADING STATE ── */
+.skeleton{background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 75%);background-size:200% 100%;animation:sk 1.4s ease-in-out infinite;border-radius:6px;}
+@keyframes sk{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+.sk-card{border:1px solid rgba(255,255,255,.08);border-radius:10px;overflow:hidden;}
+.sk-img{height:200px;} .sk-line{height:16px;margin:8px 16px;} .sk-line.w60{width:60%;} .sk-line.w40{width:40%;}
+
+/* ── GRID ── */
+.lw{padding:0 clamp(.85rem,3vw,3.2rem) clamp(4rem,8vw,8rem);max-width:1400px;margin:0 auto;}
+.lg{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:clamp(.8rem,1.7vw,1.25rem);}
+
+/* ── CARD — liquid glass ── */
+.lc{background:rgba(255,255,255,.036);backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .35s,border-color .35s,box-shadow .35s;position:relative;}
+.lc::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.065) 0%,transparent 50%,rgba(255,255,255,.02) 100%);pointer-events:none;border-radius:12px;z-index:0;}
+.lc::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.42),transparent);opacity:.45;}
+.lc:hover{transform:translateY(-10px);border-color:rgba(255,255,255,.4);box-shadow:0 0 0 1px rgba(255,255,255,.1),0 28px 70px rgba(0,0,0,.8),0 0 50px rgba(255,255,255,.06);}
+.ci{position:relative;z-index:1;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06);height:clamp(155px,18vw,215px);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.ci::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);opacity:0;transition:opacity .35s;}
+.lc:hover .ci::after{opacity:1;}
+.cimg{width:clamp(130px,17vw,200px);height:clamp(90px,12vw,145px);object-fit:contain;filter:drop-shadow(0 0 18px rgba(255,255,255,.38)) brightness(1.08) grayscale(12%);transition:transform .4s,filter .4s;}
+.lc:hover .cimg{transform:scale(1.07) rotateY(5deg);filter:drop-shadow(0 0 34px rgba(255,255,255,.88)) brightness(1.18);}
+.cbg{position:absolute;top:.8rem;right:.8rem;font-family:'Bebas Neue';font-size:.64rem;letter-spacing:.15em;padding:.15rem .6rem;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.3);border-radius:3px;color:#fff;box-shadow:var(--g1);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
+.fbtn{position:absolute;top:.8rem;left:.8rem;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.44);width:27px;height:27px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;font-size:.7rem;z-index:2;}
+.fbtn:hover,.fbtn.on{border-color:#fff;color:#fff;box-shadow:var(--g1);}
+.fbtn.on{background:rgba(255,255,255,.14);}
+.cb{position:relative;z-index:1;padding:clamp(.85rem,1.7vw,1.2rem) clamp(.85rem,1.7vw,1.3rem) clamp(.95rem,1.7vw,1.55rem);}
+.cn{font-family:'Bebas Neue';font-size:clamp(.9rem,1.3vw,1.1rem);letter-spacing:.1em;margin-bottom:.2rem;text-shadow:0 0 12px rgba(255,255,255,.28);}
+.ctg{font-size:.73rem;color:rgba(255,255,255,.34);margin-bottom:.75rem;letter-spacing:.04em;}
+.cs{display:flex;flex-wrap:wrap;gap:.25rem;margin-bottom:.92rem;}
+.stg{font-size:.57rem;letter-spacing:.06em;padding:.16rem .5rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:3px;color:rgba(255,255,255,.4);}
+.cf{display:flex;align-items:center;justify-content:space-between;gap:.5rem;}
+.cpr{font-family:'Bebas Neue';font-size:clamp(1.12rem,2vw,1.42rem);letter-spacing:.08em;text-shadow:var(--g2);}
+.cvb{font-family:'Rajdhani';font-weight:700;font-size:.65rem;letter-spacing:.12em;padding:.33rem .72rem;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.24);border-radius:3px;color:#fff;cursor:pointer;transition:all .22s;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
+.cvb:hover{background:rgba(255,255,255,.17);border-color:#fff;box-shadow:var(--g1);}
+
+/* ── DETAIL MODAL ── */
+.dov{display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.92);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);align-items:center;justify-content:center;padding:1rem;overflow-y:auto;}
+.dov.open{display:flex;}
+.dm{width:min(880px,100%);max-height:92svh;overflow-y:auto;background:rgba(255,255,255,.036);backdrop-filter:blur(40px) saturate(180%);-webkit-backdrop-filter:blur(40px) saturate(180%);border:1px solid rgba(255,255,255,.17);border-radius:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 40px 120px rgba(0,0,0,.8),0 0 80px rgba(255,255,255,.05);animation:mp .35s cubic-bezier(.34,1.56,.64,1) both;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent;position:relative;}
+.dm::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.052) 0%,transparent 40%);pointer-events:none;border-radius:14px;}
+.dm::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.58),transparent);border-radius:14px 14px 0 0;}
+@keyframes mp{from{opacity:0;transform:scale(.88) translateY(20px);}to{opacity:1;transform:scale(1) translateY(0);}}
+/* Sticky exit button */
+.mexit{position:sticky;top:.75rem;float:right;margin:.75rem .75rem 0 0;z-index:10;background:rgba(0,0,0,.75);border:1px solid rgba(255,255,255,.3);color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.95rem;cursor:pointer;transition:all .2s;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--g1);}
+.mexit:hover{border-color:#fff;box-shadow:var(--g2);transform:scale(1.1);}
+.dh{display:flex;flex-wrap:wrap;gap:1.3rem;padding:clamp(1.2rem,3.2vw,2.1rem);border-bottom:1px solid rgba(255,255,255,.07);position:relative;z-index:1;clear:both;}
+.di-img{flex-shrink:0;width:clamp(130px,20vw,210px);height:clamp(95px,14vw,155px);background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.di-img img{width:95%;height:95%;object-fit:contain;filter:drop-shadow(0 0 20px rgba(255,255,255,.6)) brightness(1.1);}
+.di{flex:1;min-width:190px;}
+.dbg{display:inline-block;font-family:'Bebas Neue';font-size:.65rem;letter-spacing:.15em;padding:.16rem .7rem;margin-bottom:.6rem;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.27);border-radius:3px;box-shadow:var(--g1);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+.dn{font-family:'Bebas Neue';font-size:clamp(1.4rem,3.2vw,2.2rem);letter-spacing:.08em;text-shadow:var(--g2);margin-bottom:.32rem;line-height:1;}
+.dt{color:rgba(255,255,255,.36);font-size:.83rem;margin-bottom:.88rem;line-height:1.65;letter-spacing:.03em;}
+.dpr{font-family:'Bebas Neue';font-size:clamp(1.4rem,3vw,2.1rem);letter-spacing:.1em;text-shadow:var(--g3);}
+.dbody{padding:clamp(1rem,2.4vw,1.75rem) clamp(1.2rem,3.2vw,2.1rem);position:relative;z-index:1;}
+.dst{font-size:.58rem;letter-spacing:.28em;color:rgba(255,255,255,.28);text-transform:uppercase;margin-bottom:.78rem;padding-bottom:.38rem;border-bottom:1px solid rgba(255,255,255,.06);}
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(165px,100%),1fr));gap:.5rem;margin-bottom:1.55rem;}
+.sgi{background:rgba(255,255,255,.038);border:1px solid rgba(255,255,255,.09);border-radius:7px;padding:.7rem .88rem;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:border-color .2s;}
+.sgi:hover{border-color:rgba(255,255,255,.28);}
+.sk2{font-size:.57rem;letter-spacing:.1em;color:rgba(255,255,255,.28);margin-bottom:.2rem;}
+.sv2{font-family:'Bebas Neue';font-size:.84rem;letter-spacing:.06em;}
+.fgl{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(185px,100%),1fr));gap:.34rem;margin-bottom:1.55rem;}
+.fgl li{list-style:none;display:flex;align-items:center;gap:.42rem;font-size:.8rem;color:rgba(255,255,255,.48);letter-spacing:.03em;}
+.fgl li::before{content:'';width:4px;height:4px;border-radius:50%;background:#fff;flex-shrink:0;box-shadow:var(--g1);}
+.da{display:flex;flex-wrap:wrap;gap:.62rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,.07);}
+.dby{flex:1;min-width:120px;padding:.78rem;background:#fff;border:1px solid #fff;border-radius:5px;font-family:'Bebas Neue';font-size:.83rem;letter-spacing:.2em;color:#000;cursor:pointer;transition:all .25s;box-shadow:var(--g1);}
+.dby:hover{box-shadow:var(--g3);transform:translateY(-2px);}
+.dadd{flex:1;min-width:120px;padding:.78rem;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.24);border-radius:5px;font-family:'Bebas Neue';font-size:.83rem;letter-spacing:.2em;color:#fff;cursor:pointer;transition:all .25s;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+.dadd:hover{background:rgba(255,255,255,.15);border-color:#fff;box-shadow:var(--g1);}
+.dwi{padding:.78rem .95rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.15);border-radius:5px;color:#fff;font-family:'Rajdhani';font-weight:700;font-size:.78rem;letter-spacing:.1em;cursor:pointer;transition:all .25s;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+.dwi:hover{border-color:#fff;box-shadow:var(--g1);}
+
+/* ── OVERLAYS ── */
+.ov{display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.88);backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px);align-items:center;justify-content:center;padding:1rem;}
+.ov.open{display:flex;}
+.sov{align-items:flex-start;padding-top:clamp(3.5rem,12vh,9rem);}
+.sb{width:min(580px,100%);display:flex;align-items:center;gap:.85rem;background:rgba(255,255,255,.05);border:1px solid #fff;border-radius:5px;padding:.88rem 1.1rem;box-shadow:var(--g2);animation:fu .28s ease;}
+@keyframes fu{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+.sb input{flex:1;background:none;border:none;outline:none;font-family:'Rajdhani';font-size:1.02rem;font-weight:600;color:#fff;letter-spacing:.05em;}
+.sb input::placeholder{color:rgba(255,255,255,.3);}
+.sres{margin-top:.85rem;width:min(580px,100%);display:flex;flex-direction:column;gap:.45rem;}
+.si3{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:7px;padding:.7rem .95rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:.78rem;}
+.si3:hover{border-color:#fff;box-shadow:var(--g1);}
+.si3 img{width:48px;height:34px;object-fit:contain;filter:brightness(1.1);}
+.si3-name{font-family:'Bebas Neue';font-size:.92rem;letter-spacing:.08em;}
+.si3-price{font-size:.72rem;color:rgba(255,255,255,.42);}
+.ab{width:min(400px,100%);background:rgba(255,255,255,.045);backdrop-filter:blur(40px) saturate(180%);-webkit-backdrop-filter:blur(40px) saturate(180%);border:1px solid rgba(255,255,255,.2);border-radius:13px;padding:clamp(1.3rem,3.8vw,2.2rem);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 8px 60px rgba(0,0,0,.7),var(--g1);animation:fu .3s ease;position:relative;}
+.ab::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.065) 0%,transparent 55%);pointer-events:none;border-radius:13px;}
+.ab::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.52),transparent);border-radius:13px 13px 0 0;}
+.ab h2{font-family:'Bebas Neue';font-size:1.8rem;letter-spacing:.15em;text-shadow:var(--g2);margin-bottom:.22rem;position:relative;}
+.ab>p{color:rgba(255,255,255,.38);font-size:.8rem;margin-bottom:1.45rem;position:relative;}
+.af{margin-bottom:.78rem;position:relative;}
+.af label{display:block;font-size:.62rem;letter-spacing:.15em;color:rgba(255,255,255,.34);margin-bottom:.28rem;}
+.pwr{position:relative;}
+.af input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:5px;padding:.66rem .9rem;color:#fff;font-family:'Rajdhani';font-size:.88rem;outline:none;transition:border-color .2s,box-shadow .2s;}
+.af input:focus{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.07),var(--g1);}
+.eyeb{position:absolute;right:.7rem;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,.32);cursor:pointer;font-size:.82rem;padding:.2rem;line-height:1;}
+.eyeb:hover{color:#fff;}
+.aerr{color:#ff7070;font-size:.75rem;margin-top:.38rem;display:none;position:relative;}
+.asub{width:100%;margin-top:.95rem;padding:.78rem;background:#fff;border:none;border-radius:5px;font-family:'Bebas Neue';font-size:.9rem;letter-spacing:.2em;color:#000;cursor:pointer;transition:all .25s;box-shadow:var(--g1);position:relative;}
+.asub:hover{box-shadow:var(--g2);transform:translateY(-2px);}
+.asub:disabled{opacity:.6;transform:none;cursor:not-allowed;}
+.asw{text-align:center;margin-top:.85rem;font-size:.78rem;color:rgba(255,255,255,.34);position:relative;}
+.asw a{color:#fff;cursor:pointer;text-shadow:var(--g1);}
+.amc{position:absolute;top:.82rem;right:.82rem;background:none;border:none;color:rgba(255,255,255,.3);font-size:1.1rem;cursor:pointer;z-index:1;}
+.amc:hover{color:#fff;}
+.panel{width:min(420px,100vw);max-height:92svh;overflow-y:auto;background:rgba(255,255,255,.038);backdrop-filter:blur(40px) saturate(180%);-webkit-backdrop-filter:blur(40px) saturate(180%);border:1px solid rgba(255,255,255,.18);border-radius:13px;animation:fu .3s ease;position:relative;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.12) transparent;}
+.panel::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.052) 0%,transparent 40%);pointer-events:none;border-radius:13px;}
+.panel::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.58),transparent);border-radius:13px 13px 0 0;}
+.phd{display:flex;align-items:center;justify-content:space-between;padding:1.3rem 1.5rem .9rem;border-bottom:1px solid rgba(255,255,255,.07);position:relative;z-index:1;}
+.pt{font-family:'Bebas Neue';font-size:1.45rem;letter-spacing:.15em;text-shadow:var(--g2);}
+.px{background:none;border:none;color:rgba(255,255,255,.38);font-size:1.1rem;cursor:pointer;}
+.px:hover{color:#fff;}
+.pb{padding:.92rem 1.32rem 1.32rem;position:relative;z-index:1;}
+.pem{text-align:center;color:rgba(255,255,255,.28);font-size:.82rem;padding:2rem 0;letter-spacing:.08em;}
+.ci2{display:flex;align-items:center;gap:.92rem;padding:.82rem 0;border-bottom:1px solid rgba(255,255,255,.06);}
+.ci2:last-of-type{border-bottom:none;}
+.ci2 img{width:56px;height:38px;object-fit:contain;filter:brightness(1.1);flex-shrink:0;}
+.ci2-i{flex:1;min-width:0;}
+.ci2-n{font-family:'Bebas Neue';font-size:.87rem;letter-spacing:.08em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ci2-p{font-size:.74rem;color:rgba(255,255,255,.42);margin-top:.18rem;}
+.ci2-d{background:none;border:1px solid rgba(255,255,255,.13);color:rgba(255,255,255,.36);width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:.68rem;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
+.ci2-d:hover{border-color:#fff;color:#fff;}
+.ctot{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:.82rem .92rem;margin-top:.92rem;display:flex;justify-content:space-between;align-items:center;}
+.ctl{font-size:.68rem;letter-spacing:.12em;color:rgba(255,255,255,.36);}
+.ctv{font-family:'Bebas Neue';font-size:1.42rem;letter-spacing:.08em;text-shadow:var(--g2);}
+.ckbtn{width:100%;margin-top:.72rem;padding:.75rem;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.22);border-radius:5px;font-family:'Bebas Neue';font-size:.82rem;letter-spacing:.2em;color:#fff;cursor:pointer;transition:all .25s;}
+.ckbtn:hover{background:rgba(255,255,255,.14);border-color:#fff;box-shadow:var(--g1);}
+.fovb{position:fixed;bottom:2rem;left:1.4rem;z-index:700;display:flex;align-items:center;gap:.52rem;background:rgba(0,0,0,.75);border:1px solid rgba(255,255,255,.2);border-radius:50px;padding:.44rem .78rem .44rem .56rem;cursor:pointer;transition:all .25s;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 8px 30px rgba(0,0,0,.6);}
+.fovb:hover{border-color:#fff;box-shadow:var(--g1),0 8px 30px rgba(0,0,0,.6);}
+.fovb>span{font-family:'Bebas Neue';font-size:.68rem;letter-spacing:.15em;color:#fff;}
+.fbdg{background:#fff;color:#000;border-radius:50%;width:15px;height:15px;font-size:.5rem;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:var(--g1);display:none;}
+footer{border-top:1px solid rgba(255,255,255,.07);padding:clamp(1.7rem,3.5vw,2.4rem) clamp(1.1rem,3.5vw,3.5rem);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;}
+.fl{font-family:'Bebas Neue';font-size:1.25rem;letter-spacing:.2em;text-shadow:var(--g2);}
+.fc{color:rgba(255,255,255,.2);font-size:.73rem;letter-spacing:.05em;}
+.toast{position:fixed;bottom:1.2rem;right:1.2rem;z-index:9000;background:rgba(0,0,0,.92);border:1px solid rgba(255,255,255,.32);border-radius:5px;padding:.74rem 1.05rem;color:#fff;font-size:.8rem;letter-spacing:.05em;box-shadow:var(--g1),0 20px 60px rgba(0,0,0,.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);opacity:0;transform:translateY(14px);transition:all .28s;pointer-events:none;max-width:calc(100vw - 2.4rem);}
+.toast.show{opacity:1;transform:translateY(0);}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(0,0,0,.2);border-top-color:#000;border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle;}
+@keyframes sp{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div id="cur"></div><div id="cur-r"></div>
+
+<!-- SEARCH -->
+<div class="ov sov" id="sOv">
+  <div style="display:flex;flex-direction:column;align-items:center;width:100%;">
+    <div class="sb">
+      <svg width="14" height="14" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="sIn" type="text" placeholder="Search laptops, specs…" autocomplete="off" oninput="doSearch(this.value)"/>
+      <button style="background:none;border:none;color:rgba(255,255,255,.4);font-size:1.1rem;cursor:pointer;" onclick="cOv('sOv')">✕</button>
+    </div>
+    <div class="sres" id="sRes"></div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div class="ov" id="mL">
+  <div class="ab">
+    <button class="amc" onclick="cOv('mL')">✕</button>
+    <h2>WELCOME BACK</h2><p>Log in to your HAX account</p>
+    <div class="af"><label>EMAIL</label><input id="lEm" type="email" placeholder="you@example.com"/></div>
+    <div class="af"><label>PASSWORD</label>
+      <div class="pwr"><input id="lPw" type="password" placeholder="Your password"/><button class="eyeb" id="e1" onclick="eye('lPw','e1')">👁</button></div>
+    </div>
+    <div class="aerr" id="lEr"></div>
+    <button class="asub" id="lBtn" onclick="doLogin()">LOG IN</button>
+    <p class="asw">No account? <a onclick="swOv('mL','mS')">Sign up →</a></p>
+  </div>
+</div>
+
+<!-- SIGNUP -->
+<div class="ov" id="mS">
+  <div class="ab">
+    <button class="amc" onclick="cOv('mS')">✕</button>
+    <h2>JOIN HAX</h2><p>Create your account</p>
+    <div class="af"><label>FULL NAME</label><input id="sNm" type="text" placeholder="Your full name"/></div>
+    <div class="af"><label>EMAIL</label><input id="sEm" type="email" placeholder="you@example.com"/></div>
+    <div class="af"><label>PASSWORD</label>
+      <div class="pwr"><input id="sPw" type="password" placeholder="Min 6 characters"/><button class="eyeb" id="e2" onclick="eye('sPw','e2')">👁</button></div>
+    </div>
+    <div class="aerr" id="sEr"></div>
+    <button class="asub" id="sBtn" onclick="doSignup()">CREATE ACCOUNT</button>
+    <p class="asw">Have an account? <a onclick="swOv('mS','mL')">Log in →</a></p>
+  </div>
+</div>
+
+<!-- CART -->
+<div class="ov" id="cOv2">
+  <div class="panel"><div class="phd"><span class="pt">YOUR CART</span><button class="px" onclick="cOv('cOv2')">✕</button></div><div class="pb" id="cBody"></div></div>
+</div>
+
+<!-- FAVS -->
+<div class="ov" id="fOv">
+  <div class="panel"><div class="phd"><span class="pt">FAVOURITES</span><button class="px" onclick="cOv('fOv')">✕</button></div><div class="pb" id="fBody"></div></div>
+</div>
+
+<!-- DETAIL -->
+<div class="dov" id="dOv" onclick="if(event.target===this)closeDetail()">
+  <div class="dm" id="dM"></div>
+</div>
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="nav-logo" onclick="scrollTo(0,0)">HAX</div>
+  <div class="nav-r">
+    <button class="ni" onclick="oOv('sOv')" title="Search">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </button>
+    <div class="c-wrap">
+      <button class="ni" onclick="openCart()" title="Cart">🛒</button>
+      <div class="cbadge" id="cBdg">0</div>
+    </div>
+    <button class="nbtn ng" id="lBtn2" onclick="oOv('mL')">LOG IN</button>
+    <button class="nbtn ns" id="sBtn2" onclick="oOv('mS')">SIGN UP</button>
+  </div>
+</nav>
+
+<!-- ════════════════ HERO ════════════════ -->
+<section class="hero" id="hero">
+  <canvas id="hcv"></canvas>
+  <div class="hgrid" id="hgrid"></div>
+  <div class="orb o1" id="o1"></div><div class="orb o2" id="o2"></div>
+  <div class="bk bk-tl" id="bkTL"></div><div class="bk bk-tr" id="bkTR"></div>
+  <div class="bk bk-bl" id="bkBL"></div><div class="bk bk-br" id="bkBR"></div>
+  <div id="spl"></div>
+  <div id="flash"></div>
+
+  <!-- REALISTIC LAPTOP SCENE -->
+  <div id="scene">
+    <div id="lw">
+
+<!-- ─── REALISTIC LAPTOP SVG ─── -->
+<!-- Viewport: 800×560. Laptop rendered with perspective, materials, reflections -->
+<svg id="laptop-svg" viewBox="0 0 800 560" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <!-- Aluminium body gradient -->
+  <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%"   stop-color="#2a2a2a"/>
+    <stop offset="40%"  stop-color="#1a1a1a"/>
+    <stop offset="100%" stop-color="#0d0d0d"/>
+  </linearGradient>
+  <!-- Lid top surface -->
+  <linearGradient id="lidTopGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%"   stop-color="#242424"/>
+    <stop offset="50%"  stop-color="#161616"/>
+    <stop offset="100%" stop-color="#0e0e0e"/>
+  </linearGradient>
+  <!-- Screen bezel -->
+  <linearGradient id="bezelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%"   stop-color="#1a1a1a"/>
+    <stop offset="100%" stop-color="#111"/>
+  </linearGradient>
+  <!-- Keyboard deck -->
+  <linearGradient id="deckGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%"   stop-color="#1e1e1e"/>
+    <stop offset="100%" stop-color="#141414"/>
+  </linearGradient>
+  <!-- Screen glass -->
+  <linearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%"   stop-color="#050505"/>
+    <stop offset="100%" stop-color="#000"/>
+  </linearGradient>
+  <!-- Screen content gradient -->
+  <radialGradient id="scrGrad" cx="50%" cy="40%" r="55%">
+    <stop offset="0%"   stop-color="rgba(255,255,255,.15)"/>
+    <stop offset="60%"  stop-color="rgba(255,255,255,.04)"/>
+    <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+  </radialGradient>
+  <!-- Lid edge highlight -->
+  <linearGradient id="edgeH" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%"   stop-color="rgba(255,255,255,.25)"/>
+    <stop offset="50%"  stop-color="rgba(255,255,255,.06)"/>
+    <stop offset="100%" stop-color="rgba(255,255,255,.02)"/>
+  </linearGradient>
+  <!-- Base bottom -->
+  <linearGradient id="baseBot" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%"   stop-color="#222"/>
+    <stop offset="100%" stop-color="#0a0a0a"/>
+  </linearGradient>
+  <!-- Key gradient -->
+  <linearGradient id="keyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%"   stop-color="#2e2e2e"/>
+    <stop offset="100%" stop-color="#202020"/>
+  </linearGradient>
+  <!-- Shadow -->
+  <radialGradient id="shadowG" cx="50%" cy="50%" r="50%">
+    <stop offset="0%"   stop-color="rgba(0,0,0,.7)"/>
+    <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+  </radialGradient>
+  <!-- Hinge gradient -->
+  <linearGradient id="hingeG" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%"   stop-color="#444"/>
+    <stop offset="50%"  stop-color="#2a2a2a"/>
+    <stop offset="100%" stop-color="#1a1a1a"/>
+  </linearGradient>
+  <!-- Screen reflection -->
+  <linearGradient id="reflGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%"   stop-color="rgba(255,255,255,.06)"/>
+    <stop offset="40%"  stop-color="rgba(255,255,255,.02)"/>
+    <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+  </linearGradient>
+  <!-- Glow filter for HAX text -->
+  <filter id="haxGlow" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="5" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+    <feGaussianBlur stdDeviation="2.5" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <clipPath id="screenClip">
+    <rect x="118" y="34" width="564" height="346" rx="3"/>
+  </clipPath>
+</defs>
+
+<!-- Ground shadow -->
+<ellipse cx="400" cy="548" rx="290" ry="16" fill="url(#shadowG)" opacity=".65"/>
+
+<!-- ── BASE / KEYBOARD DECK ── -->
+<!-- Base body -->
+<rect x="60" y="430" width="680" height="100" rx="10" fill="url(#baseBot)" stroke="#333" stroke-width="1"/>
+<!-- Deck top surface (perspective foreshortened) -->
+<path d="M68 430 L732 430 L720 440 L80 440 Z" fill="rgba(255,255,255,.04)"/>
+<!-- Deck face -->
+<rect x="68" y="440" width="664" height="88" rx="6" fill="url(#deckGrad)" stroke="#2a2a2a" stroke-width="1"/>
+<!-- Inner deck inset -->
+<rect x="80" y="448" width="640" height="72" rx="4" fill="rgba(0,0,0,.3)" stroke="rgba(255,255,255,.04)" stroke-width=".5"/>
+
+<!-- KEYBOARD — rows of keys -->
+<!-- Row 1: function row -->
+<g fill="url(#keyGrad)" stroke="rgba(255,255,255,.07)" stroke-width=".4">
+  <!-- ESC -->
+  <rect x="96" y="453" width="22" height="13" rx="2"/>
+  <!-- F keys -->
+  <rect x="124" y="453" width="18" height="13" rx="2"/>
+  <rect x="145" y="453" width="18" height="13" rx="2"/>
+  <rect x="166" y="453" width="18" height="13" rx="2"/>
+  <rect x="187" y="453" width="18" height="13" rx="2"/>
+  <rect x="212" y="453" width="18" height="13" rx="2"/>
+  <rect x="233" y="453" width="18" height="13" rx="2"/>
+  <rect x="254" y="453" width="18" height="13" rx="2"/>
+  <rect x="275" y="453" width="18" height="13" rx="2"/>
+  <rect x="300" y="453" width="18" height="13" rx="2"/>
+  <rect x="321" y="453" width="18" height="13" rx="2"/>
+  <rect x="342" y="453" width="18" height="13" rx="2"/>
+  <rect x="363" y="453" width="18" height="13" rx="2"/>
+  <rect x="390" y="453" width="18" height="13" rx="2"/>
+  <rect x="411" y="453" width="18" height="13" rx="2"/>
+  <rect x="432" y="453" width="18" height="13" rx="2"/>
+  <rect x="453" y="453" width="18" height="13" rx="2"/>
+  <rect x="478" y="453" width="18" height="13" rx="2"/>
+  <rect x="499" y="453" width="18" height="13" rx="2"/>
+  <rect x="520" y="453" width="18" height="13" rx="2"/>
+  <rect x="548" y="453" width="22" height="13" rx="2"/>
+  <rect x="573" y="453" width="22" height="13" rx="2"/>
+  <rect x="598" y="453" width="22" height="13" rx="2"/>
+  <rect x="630" y="453" width="54" height="13" rx="2"/>
+  <rect x="688" y="453" width="24" height="13" rx="2"/>
+</g>
+<!-- Row 2 -->
+<g fill="url(#keyGrad)" stroke="rgba(255,255,255,.07)" stroke-width=".4">
+  <rect x="96" y="469" width="22" height="14" rx="2"/><rect x="121" y="469" width="19" height="14" rx="2"/>
+  <rect x="143" y="469" width="19" height="14" rx="2"/><rect x="165" y="469" width="19" height="14" rx="2"/>
+  <rect x="187" y="469" width="19" height="14" rx="2"/><rect x="209" y="469" width="19" height="14" rx="2"/>
+  <rect x="231" y="469" width="19" height="14" rx="2"/><rect x="253" y="469" width="19" height="14" rx="2"/>
+  <rect x="275" y="469" width="19" height="14" rx="2"/><rect x="297" y="469" width="19" height="14" rx="2"/>
+  <rect x="319" y="469" width="19" height="14" rx="2"/><rect x="341" y="469" width="19" height="14" rx="2"/>
+  <rect x="363" y="469" width="19" height="14" rx="2"/><rect x="385" y="469" width="19" height="14" rx="2"/>
+  <rect x="407" y="469" width="19" height="14" rx="2"/><rect x="429" y="469" width="19" height="14" rx="2"/>
+  <rect x="451" y="469" width="19" height="14" rx="2"/><rect x="473" y="469" width="50" height="14" rx="2"/>
+  <rect x="548" y="469" width="22" height="14" rx="2"/><rect x="573" y="469" width="22" height="14" rx="2"/>
+  <rect x="598" y="469" width="22" height="14" rx="2"/><rect x="630" y="469" width="38" height="14" rx="2"/>
+  <rect x="671" y="469" width="41" height="14" rx="2"/>
+</g>
+<!-- Row 3 -->
+<g fill="url(#keyGrad)" stroke="rgba(255,255,255,.07)" stroke-width=".4">
+  <rect x="96" y="486" width="30" height="14" rx="2"/><rect x="129" y="486" width="19" height="14" rx="2"/>
+  <rect x="151" y="486" width="19" height="14" rx="2"/><rect x="173" y="486" width="19" height="14" rx="2"/>
+  <rect x="195" y="486" width="19" height="14" rx="2"/><rect x="217" y="486" width="19" height="14" rx="2"/>
+  <rect x="239" y="486" width="19" height="14" rx="2"/><rect x="261" y="486" width="19" height="14" rx="2"/>
+  <rect x="283" y="486" width="19" height="14" rx="2"/><rect x="305" y="486" width="19" height="14" rx="2"/>
+  <rect x="327" y="486" width="19" height="14" rx="2"/><rect x="349" y="486" width="19" height="14" rx="2"/>
+  <rect x="371" y="486" width="19" height="14" rx="2"/><rect x="393" y="486" width="19" height="14" rx="2"/>
+  <rect x="415" y="486" width="19" height="14" rx="2"/><rect x="437" y="486" width="19" height="14" rx="2"/>
+  <rect x="459" y="486" width="19" height="14" rx="2"/><rect x="481" y="486" width="48" height="14" rx="2"/>
+</g>
+<!-- Row 4 shift -->
+<g fill="url(#keyGrad)" stroke="rgba(255,255,255,.07)" stroke-width=".4">
+  <rect x="96" y="503" width="44" height="14" rx="2"/>
+  <rect x="143" y="503" width="19" height="14" rx="2"/><rect x="165" y="503" width="19" height="14" rx="2"/>
+  <rect x="187" y="503" width="19" height="14" rx="2"/><rect x="209" y="503" width="19" height="14" rx="2"/>
+  <rect x="231" y="503" width="19" height="14" rx="2"/><rect x="253" y="503" width="19" height="14" rx="2"/>
+  <rect x="275" y="503" width="19" height="14" rx="2"/><rect x="297" y="503" width="19" height="14" rx="2"/>
+  <rect x="319" y="503" width="19" height="14" rx="2"/><rect x="341" y="503" width="19" height="14" rx="2"/>
+  <rect x="363" y="503" width="19" height="14" rx="2"/><rect x="385" y="503" width="19" height="14" rx="2"/>
+  <rect x="407" y="503" width="19" height="14" rx="2"/>
+  <rect x="429" y="503" width="64" height="14" rx="2"/>
+  <!-- Arrow keys -->
+  <rect x="548" y="503" width="22" height="6" rx="2"/>
+  <rect x="573" y="503" width="22" height="14" rx="2"/>
+  <rect x="598" y="503" width="22" height="6" rx="2"/>
+  <rect x="548" y="511" width="22" height="6" rx="2"/>
+  <rect x="598" y="511" width="22" height="6" rx="2"/>
+</g>
+<!-- Bottom row with space bar -->
+<g fill="url(#keyGrad)" stroke="rgba(255,255,255,.07)" stroke-width=".4">
+  <rect x="96"  y="520" width="28" height="12" rx="2"/>
+  <rect x="127" y="520" width="22" height="12" rx="2"/>
+  <rect x="152" y="520" width="22" height="12" rx="2"/>
+  <rect x="177" y="520" width="22" height="12" rx="2"/>
+  <!-- SPACE BAR -->
+  <rect x="202" y="520" width="230" height="12" rx="2"/>
+  <rect x="435" y="520" width="22" height="12" rx="2"/>
+  <rect x="460" y="520" width="22" height="12" rx="2"/>
+  <rect x="485" y="520" width="22" height="12" rx="2"/>
+  <rect x="510" y="520" width="22" height="12" rx="2"/>
+</g>
+<!-- Key backlight glow -->
+<rect x="96" y="453" width="440" height="80" rx="3" fill="rgba(255,255,255,.018)"/>
+
+<!-- TOUCHPAD -->
+<rect x="298" y="502" width="204" height="16" rx="5" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.1)" stroke-width=".6"/>
+
+<!-- Side ports hint (left) -->
+<rect x="60" y="460" width="6" height="12" rx="1" fill="#333" stroke="#444" stroke-width=".4"/>
+<rect x="60" y="476" width="6" height="8" rx="1" fill="#333" stroke="#444" stroke-width=".4"/>
+<rect x="60" y="488" width="6" height="8" rx="1" fill="#333" stroke="#444" stroke-width=".4"/>
+<!-- Side ports hint (right) -->
+<rect x="734" y="460" width="6" height="8" rx="1" fill="#333" stroke="#444" stroke-width=".4"/>
+<rect x="734" y="472" width="6" height="8" rx="1" fill="#333" stroke="#444" stroke-width=".4"/>
+<rect x="734" y="484" width="6" height="12" rx="1" fill="#2a2a2a" stroke="#444" stroke-width=".4"/>
+
+<!-- ── HINGE ── -->
+<rect x="108" y="426" width="584" height="10" rx="4" fill="url(#hingeG)" stroke="#3a3a3a" stroke-width=".8"/>
+<rect x="108" y="426" width="584" height="3" rx="2" fill="rgba(255,255,255,.08)"/>
+
+<!-- ══ LID GROUP (opens with CSS animation) ══ -->
+<g id="lid">
+  <!-- Lid outer shell with brushed metal look -->
+  <rect x="72" y="18" width="656" height="408" rx="12" fill="url(#lidTopGrad)" stroke="#2e2e2e" stroke-width="1.5"/>
+  <!-- Lid edge highlight (top) -->
+  <rect x="72" y="18" width="656" height="4" rx="3" fill="url(#edgeH)"/>
+  <!-- Lid side highlights -->
+  <rect x="72" y="18" width="3" height="408" rx="2" fill="rgba(255,255,255,.08)"/>
+  <rect x="725" y="18" width="3" height="408" rx="2" fill="rgba(255,255,255,.05)"/>
+  <!-- Subtle brushed metal texture lines on lid back -->
+  <line x1="72" y1="80"  x2="728" y2="80"  stroke="rgba(255,255,255,.025)" stroke-width=".8"/>
+  <line x1="72" y1="140" x2="728" y2="140" stroke="rgba(255,255,255,.02)"  stroke-width=".8"/>
+  <line x1="72" y1="200" x2="728" y2="200" stroke="rgba(255,255,255,.025)" stroke-width=".8"/>
+  <line x1="72" y1="260" x2="728" y2="260" stroke="rgba(255,255,255,.02)"  stroke-width=".8"/>
+  <line x1="72" y1="320" x2="728" y2="320" stroke="rgba(255,255,255,.025)" stroke-width=".8"/>
+  <line x1="72" y1="380" x2="728" y2="380" stroke="rgba(255,255,255,.02)"  stroke-width=".8"/>
+
+  <!-- Apple-style logo area (HAX logo on lid back) -->
+  <g transform="translate(380,220)">
+    <circle r="28" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.15)" stroke-width=".8"/>
+    <text text-anchor="middle" dominant-baseline="central" font-family="'Bebas Neue',sans-serif" font-size="20" fill="rgba(255,255,255,.35)" letter-spacing="2">HAX</text>
+  </g>
+
+  <!-- ── SCREEN BEZEL ── -->
+  <rect x="88" y="28" width="624" height="388" rx="8" fill="url(#bezelGrad)" stroke="rgba(255,255,255,.08)" stroke-width=".8"/>
+  <!-- Camera dot -->
+  <circle cx="400" cy="38" r="4.5" fill="#111" stroke="rgba(255,255,255,.12)" stroke-width=".5"/>
+  <circle cx="400" cy="38" r="2.5" fill="#0a0a0a"/>
+  <circle cx="401" cy="37" r="1" fill="rgba(255,255,255,.15)"/>
+
+  <!-- ── SCREEN GLASS ── -->
+  <rect x="100" y="48" width="600" height="358" rx="4" fill="url(#glassGrad)" stroke="rgba(255,255,255,.07)" stroke-width=".5"/>
+
+  <!-- Screen ambient glow -->
+  <rect x="100" y="48" width="600" height="358" rx="4" fill="url(#scrGrad)"/>
+
+  <!-- ═══════════════════════════════════════
+       MINI HAX WEBSITE ON SCREEN (what zooms in)
+       ═══════════════════════════════════════ -->
+  <g id="scr-content" clip-path="url(#screenClip)">
+    <!-- Screen background -->
+    <rect x="100" y="48" width="600" height="358" fill="#050508"/>
+
+    <!-- Mini scanlines on screen -->
+    <rect x="100" y="48" width="600" height="358" fill="url(#scrGrad)" opacity=".5"/>
+
+    <!-- Mini grid lines -->
+    <line x1="100" y1="100" x2="700" y2="100" stroke="rgba(255,255,255,.04)" stroke-width=".6"/>
+    <line x1="100" y1="150" x2="700" y2="150" stroke="rgba(255,255,255,.03)" stroke-width=".6"/>
+    <line x1="100" y1="200" x2="700" y2="200" stroke="rgba(255,255,255,.04)" stroke-width=".6"/>
+    <line x1="100" y1="250" x2="700" y2="250" stroke="rgba(255,255,255,.03)" stroke-width=".6"/>
+    <line x1="100" y1="300" x2="700" y2="300" stroke="rgba(255,255,255,.04)" stroke-width=".6"/>
+    <line x1="200" y1="48"  x2="200" y2="406" stroke="rgba(255,255,255,.03)" stroke-width=".6"/>
+    <line x1="400" y1="48"  x2="400" y2="406" stroke="rgba(255,255,255,.04)" stroke-width=".6"/>
+    <line x1="600" y1="48"  x2="600" y2="406" stroke="rgba(255,255,255,.03)" stroke-width=".6"/>
+
+    <!-- Mini navbar on screen -->
+    <rect x="100" y="48" width="600" height="20" fill="rgba(0,0,0,.75)"/>
+    <rect x="100" y="67" width="600" height=".5" fill="rgba(255,255,255,.12)"/>
+    <text x="118" y="61" font-family="'Bebas Neue',sans-serif" font-size="10" fill="rgba(255,255,255,.8)" letter-spacing="2">HAX</text>
+    <!-- Mini nav items -->
+    <rect x="480" y="54" width="28" height="8" rx="1" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.18)" stroke-width=".4"/>
+    <rect x="512" y="54" width="35" height="8" rx="1" fill="rgba(255,255,255,.18)"/>
+    <text x="516" y="60" font-family="'Rajdhani',sans-serif" font-size="5" fill="#000" letter-spacing=".5">SIGN UP</text>
+    <text x="483" y="60" font-family="'Rajdhani',sans-serif" font-size="5" fill="rgba(255,255,255,.6)" letter-spacing=".3">LOG IN</text>
+    <!-- Cart icon hint -->
+    <circle cx="468" cy="58" r="5" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.18)" stroke-width=".4"/>
+    <text x="465.5" y="61" font-family="'Rajdhani',sans-serif" font-size="6" fill="rgba(255,255,255,.5)">🛒</text>
+
+    <!-- HAX HERO ON SCREEN — what we zoom into -->
+    <g id="hax-txt">
+      <!-- Neon HAX glow (large) -->
+      <text x="400" y="190" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="80"
+            fill="rgba(255,255,255,.08)" filter="url(#haxGlow)">HAX</text>
+      <text x="400" y="190" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="80"
+            fill="rgba(255,255,255,.88)" filter="url(#softGlow)">HAX</text>
+      <!-- Outline LAPTOPS text -->
+      <text x="400" y="218" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="22"
+            fill="none" stroke="rgba(255,255,255,.45)" stroke-width=".8" letter-spacing="8">LAPTOPS</text>
+      <!-- Subtitle line -->
+      <text x="400" y="240" text-anchor="middle" font-family="'Rajdhani',sans-serif" font-size="8"
+            fill="rgba(255,255,255,.28)" letter-spacing="3">NEXT GENERATION COMPUTING</text>
+      <!-- Decorative lines -->
+      <line x1="220" y1="248" x2="310" y2="248" stroke="rgba(255,255,255,.2)" stroke-width=".6"/>
+      <circle cx="400" cy="248" r="3" fill="none" stroke="rgba(255,255,255,.3)" stroke-width=".6"/>
+      <line x1="490" y1="248" x2="580" y2="248" stroke="rgba(255,255,255,.2)" stroke-width=".6"/>
+      <!-- CTA button on screen -->
+      <rect x="338" y="258" width="124" height="20" rx="2" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.4)" stroke-width=".6"/>
+      <text x="400" y="271" text-anchor="middle" font-family="'Bebas Neue',sans-serif" font-size="9"
+            fill="rgba(255,255,255,.8)" letter-spacing="2">GET YOUR LAPTOP NOW →</text>
+
+      <!-- Corner accents on screen -->
+      <rect x="112" y="60" width="14" height="1.5" fill="rgba(255,255,255,.4)"/>
+      <rect x="112" y="60" width="1.5" height="14" fill="rgba(255,255,255,.4)"/>
+      <rect x="674" y="60" width="14" height="1.5" fill="rgba(255,255,255,.4)"/>
+      <rect x="686.5" y="60" width="1.5" height="14" fill="rgba(255,255,255,.4)"/>
+      <rect x="112" y="392" width="14" height="1.5" fill="rgba(255,255,255,.4)"/>
+      <rect x="112" y="392" width="1.5" height="14" fill="rgba(255,255,255,.4)"/>
+      <rect x="674" y="392" width="14" height="1.5" fill="rgba(255,255,255,.4)"/>
+      <rect x="686.5" y="393" width="1.5" height="13" fill="rgba(255,255,255,.4)"/>
+    </g>
+
+    <!-- Screen glass reflection overlay -->
+    <rect x="100" y="48" width="600" height="358" rx="4" fill="url(#reflGrad)" pointer-events="none"/>
+    <!-- Screen glare highlight top-left -->
+    <ellipse cx="180" cy="100" rx="80" ry="35" fill="rgba(255,255,255,.04)" transform="rotate(-20,180,100)"/>
+  </g>
+
+  <!-- Screen edge inner shadow -->
+  <rect x="100" y="48" width="600" height="358" rx="4" fill="none" stroke="rgba(0,0,0,.6)" stroke-width="4"/>
+</g>
+<!-- Lid bottom edge -->
+<rect x="72" y="421" width="656" height="5" rx="2" fill="rgba(255,255,255,.05)"/>
+</svg>
+<!-- END LAPTOP SVG -->
+
+    </div><!-- #lw -->
+  </div><!-- #scene -->
+
+  <!-- Hero CTA content revealed after intro -->
+  <div class="hcta" id="hcta">
+    <p class="he">Next generation computing · Est. 2025</p>
+    <h1 class="ht"><span class="nw">HAX</span><span class="ow">LAPTOPS</span></h1>
+    <p class="hs">Engineered at the edge of the possible. Real machines. Real power. Zero compromise.</p>
+    <button class="hbtn" onclick="document.getElementById('models').scrollIntoView({behavior:'smooth'})">
+      GET YOUR LAPTOP NOW <span class="arr">→</span>
+    </button>
+  </div>
+
+  <div class="si2" id="scrollInd">
+    <div class="sm2"><div class="sd2"></div></div>
+    <span>SCROLL</span>
+  </div>
+</section>
+
+<!-- MODELS SECTION -->
+<div id="models">
+  <div class="sh"><p class="se">Choose your machine</p><h2 class="st">THE LINEUP</h2></div>
+  <div class="lw"><div class="lg" id="grd">
+    <!-- Skeleton loading cards -->
+    <div class="sk-card"><div class="sk-img skeleton"></div><div style="padding:1rem"><div class="sk-line skeleton w60"></div><div class="sk-line skeleton w40" style="margin-top:.5rem"></div></div></div>
+    <div class="sk-card"><div class="sk-img skeleton"></div><div style="padding:1rem"><div class="sk-line skeleton w60"></div><div class="sk-line skeleton w40" style="margin-top:.5rem"></div></div></div>
+    <div class="sk-card"><div class="sk-img skeleton"></div><div style="padding:1rem"><div class="sk-line skeleton w60"></div><div class="sk-line skeleton w40" style="margin-top:.5rem"></div></div></div>
+  </div></div>
+</div>
+
+<!-- FAV BUTTON -->
+<button class="fovb" onclick="openFavs()" id="favBtn">
+  <span style="font-size:.9rem">♡</span><span>FAVOURITES</span>
+  <div class="fbdg" id="fBdg">0</div>
+</button>
+
+<footer>
+  <div class="fl">HAX</div>
+  <p class="fc">© 2025 HAX LAPTOPS · POWERED BY SUPABASE</p>
+</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════
+// SUPABASE
+// ══════════════════════════════════════════════════
+const {createClient} = supabase;
+const SB = createClient(
+  'https://iissvfnbskjvdmqezbvm.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlpc3N2Zm5ic2tqdmRtcWV6YnZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNjQ4MzQsImV4cCI6MjA5MTY0MDgzNH0.23K2c2so5EqgcMLJ0QeZcx4GPP-3QUL6jFBb730YEEM'
+);
+
+// ══════════════════════════════════════════════════
+// FALLBACK DATA (used if DB not yet set up)
+// ══════════════════════════════════════════════════
+const FALLBACK = [
+  {id:'asus-tuf-a15',name:'ASUS TUF Gaming A15',tag:'GAMING',tagline:'Precision-tuned. Battle-ready.',price:'₹68,990',price_num:68990,image_url:'https://m.media-amazon.com/images/I/71q+U1y4C+L._SX679_.jpg',specs:['AMD Ryzen 7 7445HS','RTX 3050 4GB','16GB DDR5','512GB PCIe 4.0'],full_specs:{Processor:'AMD Ryzen 7 7445HS (up to 4.7GHz)',Graphics:'NVIDIA RTX 3050 4GB GDDR6',Display:'15.6" FHD 144Hz IPS',RAM:'16GB DDR5-5600 (up to 64GB)',Storage:'512GB PCIe 4.0 NVMe',Battery:'48Whr 3-cell',Weight:'2.30 kg',OS:'Windows 11 Home + Office 2024',Ports:'USB-A×2, USB-C, HDMI, RJ45',Cooling:'Dual-fan heat pipe'},features:['MIL-STD-810H military grade','1-zone RGB keyboard','144Hz anti-glare display','Wi-Fi 6 + BT 5.3','DDR5-5600 RAM','PCIe 4.0 SSD','Office 2024 bundled','64GB max RAM'],description:'Geared for serious gaming with AMD Ryzen 7 power and RTX 3050 graphics. Built to MIL-STD-810H military standards.'},
+  {id:'hp-victus-fb3189ax',name:'HP Victus 15',tag:'BESTSELLER',tagline:'Performance that punches above its price.',price:'₹65,990',price_num:65990,image_url:'https://m.media-amazon.com/images/I/71QBGXfbpuL._SX679_.jpg',specs:['AMD Ryzen 7 7445HS','RTX 2050 4GB','16GB DDR5','512GB PCIe Gen4'],full_specs:{Processor:'AMD Ryzen 7 7445HS (up to 4.7GHz)',Graphics:'NVIDIA RTX 2050 4GB',Display:'15.6" FHD 144Hz IPS 300 nits',RAM:'16GB DDR5-5600 (upgradeable)',Storage:'512GB PCIe Gen4 NVMe',Battery:'3-cell ~5–6hr',Weight:'2.29 kg',OS:'Windows 11 Home + Office 2024',Ports:'USB-A×2, USB-C, HDMI, SD, RJ45',Cooling:'HP Thermal Shield dual-fan'},features:['OMEN-inspired design','300 nit display','HP HD camera','Backlit keyboard','M365 1yr free','Wi-Fi 6','OMEN Gaming Hub key','Enlarged touchpad'],description:'OMEN-level design at a student-friendly price. Ryzen 7 + RTX 2050 handles everything.'},
+  {id:'acer-nitro-v-anv15',name:'Acer Nitro V 15',tag:'VALUE',tagline:'6GB VRAM. 165Hz. Under ₹65K.',price:'₹63,699',price_num:63699,image_url:'https://m.media-amazon.com/images/I/71PkKEXe5UL._SX679_.jpg',specs:['AMD Ryzen 5 6600H','RTX 3050 6GB','16GB DDR5','512GB NVMe'],full_specs:{Processor:'AMD Ryzen 5 6600H (6-core 4.5GHz)',Graphics:'NVIDIA RTX 3050 6GB GDDR6',Display:'15.6" FHD IPS 165Hz 300 nits',RAM:'16GB DDR5 (2 slots)',Storage:'512GB PCIe NVMe SSD',Battery:'57Whr ~5hr',Weight:'2.1 kg',OS:'Windows 11 Home',Ports:'USB4, USB-A×2, HDMI 2.1, RJ45',Cooling:'NitroSense dual-fan'},features:['165Hz display','USB4 support','NitroSense control','100% sRGB','Wi-Fi 6E','RJ45 Ethernet','Lightweight 2.1kg','White backlit KB'],description:'Best-value RTX laptop under ₹65K. 6GB VRAM RTX 3050 at 165Hz.'},
+  {id:'lenovo-loq-83jc00nyin',name:'Lenovo LOQ 15ARP9',tag:'AI GAMING',tagline:'AI Engine+. RTX 4050. Under ₹80K.',price:'₹79,990',price_num:79990,image_url:'https://m.media-amazon.com/images/I/71xFDFqXVRL._SX679_.jpg',specs:['AMD Ryzen 5 7235HS','RTX 4050 6GB','16GB DDR5','512GB SSD'],full_specs:{Processor:'AMD Ryzen 5 7235HS (8-core 4.2GHz)',Graphics:'NVIDIA RTX 4050 6GB GDDR6',Display:'15.6" FHD 144Hz IPS Anti-glare',RAM:'16GB DDR5 (2 slots)',Storage:'512GB PCIe NVMe SSD',Battery:'60Whr ~5–6hr',Weight:'2.4 kg',OS:'Windows 11 + Office 2024',Ports:'USB-A×3, USB-C, HDMI 2.1, RJ45',Cooling:'Hyperchamber sealed dual-fan'},features:['AI Engine+','MUX Switch','RTX 4050 DLSS 3','Hyperchamber cooling','Xbox Game Pass 3mo','LA1 AI Chip','100% sRGB','Nahimic audio'],description:'Lenovo AI Engine+ and LA1 chip optimise performance. Best RTX 4050 deal under ₹80K.'},
+  {id:'dell-g15-5530',name:'Dell G15 5530',tag:'POWERHOUSE',tagline:'Intel 13th Gen + 4-zone RGB beast.',price:'₹82,990',price_num:82990,image_url:'https://m.media-amazon.com/images/I/71RH3P9f8WL._SX679_.jpg',specs:['Intel Core i5-13450HX','RTX 3050 6GB','16GB DDR5','1TB SSD'],full_specs:{Processor:'Intel Core i5-13450HX (10-core 4.6GHz)',Graphics:'NVIDIA RTX 3050 6GB GDDR6',Display:'15.6" FHD 120Hz WVA Anti-glare',RAM:'16GB DDR5 4800MHz (2 slots)',Storage:'1TB M.2 PCIe NVMe SSD',Battery:'56Whr ~7–8hr',Weight:'2.65 kg',OS:'Windows 11 Home + Office 2021',Ports:'USB-A×3, USB-C TB4, HDMI 2.1, SD, RJ45',Cooling:'Alienware thermal shelf'},features:['4-zone RGB keyboard','Alienware Command Center','Thunderbolt 4','ComfortView Plus','Intel Wi-Fi 6','1TB storage','McAfee bundled','Dark Shadow Gray'],description:'Alienware DNA at an accessible price. G15 5530 packs Intel 13th-gen with 1TB storage.'},
+];
+
+// ══════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════
+let USER=null, CART=[], FAVS=[], LAPTOPS=[];
+
+// ══════════════════════════════════════════════════
+// CINEMATIC HERO — JS zoom (not CSS scale)
+// Strategy: lid opens (CSS), then JS smoothly scales
+// #lw from 1 → target that fills viewport, then
+// after filling, white flash → reveal UI
+// ══════════════════════════════════════════════════
+function startCinematic() {
+  const lw    = document.getElementById('lw');
+  const scene = document.getElementById('scene');
+
+  // Phase 1: 0→2s — laptop appears & lid opens (CSS handles this)
+  // Phase 2: 3s → start zooming toward screen via JS
+  // Target: scale enough that the screen fills viewport
+  // Screen in SVG: x=100,y=48,w=600,h=358 within 800×560 SVG
+  // We want screen to fill ~100% of viewport
+  // lw width ≈ 58vw → SVG 800px wide → screen 600px wide → ratio=600/800
+  // scale needed ≈ viewport.width / (lw.width × 600/800)
+
+  let startTime = null;
+  const ZOOM_START = 3000;   // ms after page load
+  const ZOOM_DURATION = 3400; // ms — how long the zoom takes
+  const REVEAL_TIME = ZOOM_START + ZOOM_DURATION + 200;
+
+  // Ease in-out cubic
+  function easeInOutCubic(t){return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;}
+
+  function computeTargetScale(){
+    const lwEl = document.getElementById('lw');
+    const svgW = 800; // SVG viewBox width
+    const screenW = 600; // screen rect width in SVG
+    const lwPxW = lwEl.getBoundingClientRect().width;
+    // At scale=1, screen pixel width = lwPxW * (600/800)
+    const screenPxW = lwPxW * (screenW / svgW);
+    // We want screenPxW * targetScale ≈ viewport width * 1.05 (slight overshoot)
+    const target = (window.innerWidth * 1.06) / screenPxW;
+    return Math.min(target, 10); // cap at 10×
+  }
+
+  function computeTranslateY(scale){
+    // The screen centre in SVG is at y=48+358/2=227, which as fraction of 560 = 0.405
+    // At scale s, the lid pivot (top of lw) shifts → need to shift up to keep screen centred
+    // Approximate: shift up by (scale-1) * 0.15 * lw height
+    const lwEl = document.getElementById('lw');
+    const lwH  = lwEl.getBoundingClientRect().height;
+    // Screen centre is ~40% from top of SVG
+    // We want it centred vertically in viewport
+    return -(scale - 1) * lwH * 0.15;
+  }
+
+  setTimeout(()=>{
+    function zoomTick(ts){
+      if (!startTime) startTime = ts;
+      const elapsed = ts - startTime;
+      const progress = Math.min(elapsed / ZOOM_DURATION, 1);
+      const eased = easeInOutCubic(progress);
+      const targetScale = computeTargetScale();
+      const currentScale = 1 + (targetScale - 1) * eased;
+      const ty = computeTranslateY(currentScale);
+      lw.style.transform = `scale(${currentScale}) translateY(${ty}px)`;
+      lw.style.transformOrigin = '50% 40%';
+      if (progress < 1) requestAnimationFrame(zoomTick);
+    }
+    requestAnimationFrame(zoomTick);
+  }, ZOOM_START);
+
+  // Reveal UI
+  setTimeout(()=>{
+    scene.style.opacity  = '0';
+    scene.style.transition = 'opacity .4s ease';
+    document.getElementById('flash').style.animation = 'none';
+    // Trigger flash manually
+    const fl = document.getElementById('flash');
+    fl.style.opacity = '0';
+    fl.style.transition = 'opacity .3s';
+    requestAnimationFrame(()=>{fl.style.opacity='1';setTimeout(()=>{fl.style.opacity='0';},300);});
+
+    document.getElementById('nav').classList.add('vis');
+    document.getElementById('hcta').classList.add('vis');
+    document.getElementById('hgrid').classList.add('vis');
+    document.getElementById('o1').classList.add('vis');
+    document.getElementById('o2').classList.add('vis');
+    document.getElementById('spl').classList.add('vis');
+    document.getElementById('bkTL').classList.add('vis');
+    document.getElementById('bkTR').classList.add('vis');
+    document.getElementById('bkBL').classList.add('vis');
+    document.getElementById('bkBR').classList.add('vis');
+    document.getElementById('scrollInd').classList.add('vis');
+    document.getElementById('hcv').classList.add('vis');
+    iPts(); drawPts();
+  }, REVEAL_TIME);
+}
+
+// ══════════════════════════════════════════════════
+// LOAD LAPTOPS FROM DB
+// ══════════════════════════════════════════════════
+async function loadLaptops(){
+  try {
+    const {data,error} = await SB.from('products').select('*').order('price_num',{ascending:true});
+    if (error || !data || data.length===0) throw new Error('empty');
+    LAPTOPS = data.map(p=>({
+      ...p,
+      specs: Array.isArray(p.specs) ? p.specs : JSON.parse(p.specs||'[]'),
+      full_specs: (typeof p.full_specs==='object' && !Array.isArray(p.full_specs)) ? p.full_specs : JSON.parse(p.full_specs||'{}'),
+      features: Array.isArray(p.features) ? p.features : JSON.parse(p.features||'[]'),
+    }));
+    tst(`✓ ${LAPTOPS.length} laptops loaded from database`);
+  } catch {
+    LAPTOPS = FALLBACK;
+    tst('Using local data — run supabase-setup.sql to connect DB');
+  }
+  renderCards();
+}
+
+// ══════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════
+async function initAuth(){
+  const {data:{session}} = await SB.auth.getSession();
+  if (session?.user) await setUser(session.user);
+  SB.auth.onAuthStateChange(async(_,sess)=>{
+    if(sess?.user) await setUser(sess.user); else clearUser();
+  });
+}
+async function setUser(u){USER=u;renderNav();await loadCart();await loadFavs();renderCards();}
+function clearUser(){USER=null;CART=[];FAVS=[];renderNav();updCBdg();updFBdg();renderCards();}
+
+function renderNav(){
+  const nr=document.getElementById('nav').querySelector('.nav-r');
+  const lb=document.getElementById('lBtn2'),sb=document.getElementById('sBtn2');
+  document.getElementById('uChip')?.remove();document.getElementById('loBtn')?.remove();
+  if(USER){
+    lb.style.display='none';sb.style.display='none';
+    const em=USER.email.length>18?USER.email.slice(0,16)+'…':USER.email;
+    const ch=document.createElement('div');ch.id='uChip';ch.className='uchip';
+    ch.innerHTML=`<div class="udot"></div><span>${em}</span>`;
+    nr.insertBefore(ch,lb);
+    const lo=document.createElement('button');lo.id='loBtn';lo.className='nbtn ng';
+    lo.textContent='LOG OUT';lo.onclick=doLogout;nr.appendChild(lo);
+  } else { lb.style.display='';sb.style.display=''; }
+}
+
+async function doLogin(){
+  const em=document.getElementById('lEm').value.trim();
+  const pw=document.getElementById('lPw').value;
+  const btn=document.getElementById('lBtn'),err=document.getElementById('lEr');
+  err.style.display='none';
+  if(!em||!pw){showErr(err,'Fill in both fields.');return;}
+  btn.innerHTML='<span class="spin"></span> LOGGING IN…';btn.disabled=true;
+  const{error}=await SB.auth.signInWithPassword({email:em,password:pw});
+  btn.innerHTML='LOG IN';btn.disabled=false;
+  if(error){showErr(err,error.message==='Invalid login credentials'?'Wrong email or password.':error.message);return;}
+  cOv('mL');document.getElementById('lEm').value='';document.getElementById('lPw').value='';
+  tst('✓ Logged in successfully');
+}
+
+async function doSignup(){
+  const nm=document.getElementById('sNm').value.trim();
+  const em=document.getElementById('sEm').value.trim();
+  const pw=document.getElementById('sPw').value;
+  const btn=document.getElementById('sBtn'),err=document.getElementById('sEr');
+  err.style.display='none';
+  if(!nm||!em||!pw){showErr(err,'Fill in all fields.');return;}
+  if(pw.length<6){showErr(err,'Password must be at least 6 characters.');return;}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){showErr(err,'Enter a valid email address.');return;}
+  btn.innerHTML='<span class="spin" style="border-top-color:#000"></span> CREATING…';btn.disabled=true;
+  const{data,error}=await SB.auth.signUp({email:em,password:pw,options:{data:{full_name:nm}}});
+  btn.innerHTML='CREATE ACCOUNT';btn.disabled=false;
+  if(error){showErr(err,error.message);return;}
+  if(data?.user?.identities?.length===0){showErr(err,'Email already registered. Please log in.');return;}
+  cOv('mS');
+  document.getElementById('sNm').value='';document.getElementById('sEm').value='';document.getElementById('sPw').value='';
+  tst('✓ Account created! Check your email then log in.');
+}
+async function doLogout(){await SB.auth.signOut();tst('Logged out. See you soon!');}
+function showErr(el,m){el.textContent=m;el.style.display='block';}
+function eye(iid,bid){const i=document.getElementById(iid),b=document.getElementById(bid);if(i.type==='password'){i.type='text';b.textContent='🙈';}else{i.type='password';b.textContent='👁';}}
+
+// ══════════════════════════════════════════════════
+// CART
+// ══════════════════════════════════════════════════
+async function loadCart(){
+  if(!USER){CART=JSON.parse(localStorage.getItem('hax_cart')||'[]');}
+  else{try{const{data}=await SB.from('cart').select('*').eq('user_id',USER.id);CART=data||[];}catch{CART=[];}}
+  updCBdg();
+}
+async function addToCart(lid){
+  if(!USER){tst('Please log in to add to cart');oOv('mL');return;}
+  if(CART.find(c=>c.product_id===lid)){tst('Already in your cart!');return;}
+  const l=LAPTOPS.find(x=>x.id===lid);
+  const item={user_id:USER.id,product_id:lid,name:l.name,price:l.price,price_num:l.price_num,image_url:l.image_url};
+  try{const{data,err2}=await SB.from('cart').insert([item]).select().single();CART.push(err2?{...item,id:Date.now()}:data);}catch{CART.push({...item,id:Date.now()});}
+  updCBdg();tst(`✓ ${l.name} added to cart`);
+}
+async function remCart(id,pid){
+  if(USER){try{await SB.from('cart').delete().eq('id',id);}catch{}}
+  CART=CART.filter(c=>c.id!==id&&c.product_id!==pid);updCBdg();renderCartPanel();tst('Removed from cart');
+}
+function updCBdg(){const b=document.getElementById('cBdg');b.textContent=CART.length;b.style.display=CART.length?'flex':'none';}
+function openCart(){renderCartPanel();oOv('cOv2');}
+function renderCartPanel(){
+  const body=document.getElementById('cBody');
+  if(!CART.length){body.innerHTML='<p class="pem">YOUR CART IS EMPTY</p>';return;}
+  const tot=CART.reduce((s,c)=>s+(c.price_num||0),0);
+  body.innerHTML=CART.map(c=>`<div class="ci2"><img src="${c.image_url}" alt="" onerror="this.style.opacity=0"/><div class="ci2-i"><div class="ci2-n">${c.name}</div><div class="ci2-p">${c.price}</div></div><button class="ci2-d" onclick="remCart('${c.id}','${c.product_id}')">✕</button></div>`).join('')
+    +`<div class="ctot"><span class="ctl">CART TOTAL</span><span class="ctv">₹${tot.toLocaleString('en-IN')}</span></div><button class="ckbtn" onclick="tst('Checkout coming soon!')">PROCEED TO CHECKOUT</button>`;
+}
+
+// ══════════════════════════════════════════════════
+// FAVOURITES
+// ══════════════════════════════════════════════════
+async function loadFavs(){
+  if(!USER){FAVS=JSON.parse(localStorage.getItem('hax_favs')||'[]');}
+  else{try{const{data}=await SB.from('favorites').select('product_id').eq('user_id',USER.id);FAVS=(data||[]).map(f=>f.product_id);}catch{FAVS=[];}}
+  updFBdg();
+}
+async function toggleFav(lid){
+  if(!USER){tst('Please log in to save favourites');oOv('mL');return;}
+  const on=FAVS.includes(lid);
+  if(on){try{await SB.from('favorites').delete().eq('user_id',USER.id).eq('product_id',lid);}catch{}FAVS=FAVS.filter(f=>f!==lid);tst('Removed from favourites');}
+  else{try{await SB.from('favorites').insert([{user_id:USER.id,product_id:lid}]);}catch{}FAVS.push(lid);tst('♡ Added to favourites');}
+  updFBdg();renderCards();
+}
+function updFBdg(){const b=document.getElementById('fBdg');b.textContent=FAVS.length;b.style.display=FAVS.length?'flex':'none';}
+function openFavs(){renderFavPanel();oOv('fOv');}
+function renderFavPanel(){
+  const body=document.getElementById('fBody');
+  const fl=LAPTOPS.filter(l=>FAVS.includes(l.id));
+  if(!fl.length){body.innerHTML='<p class="pem">NO FAVOURITES YET<br><span style="opacity:.5;font-size:.75rem">Tap ♡ on any laptop</span></p>';return;}
+  body.innerHTML=fl.map(l=>`<div class="ci2"><img src="${l.image_url}" alt="" onerror="this.style.opacity=0"/><div class="ci2-i"><div class="ci2-n">${l.name}</div><div class="ci2-p">${l.price}</div></div><button class="ci2-d" onclick="toggleFav('${l.id}');setTimeout(renderFavPanel,300)">✕</button></div>`).join('');
+}
+
+// ══════════════════════════════════════════════════
+// SEARCH
+// ══════════════════════════════════════════════════
+function doSearch(q){
+  const res=document.getElementById('sRes');
+  if(!q.trim()){res.innerHTML='';return;}
+  const hits=LAPTOPS.filter(l=>
+    l.name.toLowerCase().includes(q.toLowerCase())||
+    (Array.isArray(l.specs)?l.specs:JSON.parse(l.specs||'[]')).some(s=>s.toLowerCase().includes(q.toLowerCase()))||
+    l.tagline.toLowerCase().includes(q.toLowerCase())
+  );
+  if(!hits.length){res.innerHTML=`<div style="color:rgba(255,255,255,.3);font-size:.82rem;text-align:center;padding:.9rem 0;">No results for "${q}"</div>`;return;}
+  res.innerHTML=hits.map(l=>`<div class="si3" onclick="cOv('sOv');openDetail('${l.id}')"><img src="${l.image_url}" alt="" onerror="this.style.display='none'"/><div><div class="si3-name">${l.name}</div><div class="si3-price">${l.price} · ${l.tag}</div></div></div>`).join('');
+}
+
+// ══════════════════════════════════════════════════
+// CARDS
+// ══════════════════════════════════════════════════
+function renderCards(){
+  if(!LAPTOPS.length) return;
+  document.getElementById('grd').innerHTML=LAPTOPS.map(l=>{
+    const fav=FAVS.includes(l.id);
+    const sp=Array.isArray(l.specs)?l.specs:JSON.parse(l.specs||'[]');
+    return `<div class="lc" onclick="openDetail('${l.id}')">
+      <div class="ci">
+        <button class="fbtn${fav?' on':''}" onclick="event.stopPropagation();toggleFav('${l.id}')" title="Favourite">${fav?'♥':'♡'}</button>
+        <img class="cimg" src="${l.image_url}" alt="${l.name}" onerror="this.style.display='none'"/>
+        <span class="cbg">${l.tag}</span>
+      </div>
+      <div class="cb">
+        <div class="cn">${l.name}</div>
+        <div class="ctg">${l.tagline}</div>
+        <div class="cs">${sp.map(s=>`<span class="stg">${s}</span>`).join('')}</div>
+        <div class="cf"><span class="cpr">${l.price}</span><button class="cvb">VIEW →</button></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════
+// DETAIL
+// ══════════════════════════════════════════════════
+function openDetail(id){
+  const l=LAPTOPS.find(x=>x.id===id);if(!l) return;
+  const fav=FAVS.includes(l.id);
+  const fs=typeof l.full_specs==='object'&&!Array.isArray(l.full_specs)?l.full_specs:(JSON.parse(l.full_specs||'{}'));
+  const ft=Array.isArray(l.features)?l.features:(JSON.parse(l.features||'[]'));
+  document.getElementById('dM').innerHTML=`
+    <button class="mexit" onclick="closeDetail()" title="Close">✕</button>
+    <div class="dh">
+      <div class="di-img"><img src="${l.image_url}" alt="${l.name}" onerror="this.style.display='none'"/></div>
+      <div class="di">
+        <span class="dbg">${l.tag}</span>
+        <div class="dn">${l.name}</div>
+        <div class="dt">${l.description||l.desc||''}</div>
+        <div class="dpr">${l.price}</div>
+      </div>
+    </div>
+    <div class="dbody">
+      <div class="dst">FULL SPECIFICATIONS</div>
+      <div class="sg">${Object.entries(fs).map(([k,v])=>`<div class="sgi"><div class="sk2">${k.toUpperCase()}</div><div class="sv2">${v}</div></div>`).join('')}</div>
+      <div class="dst">KEY FEATURES</div>
+      <ul class="fgl">${ft.map(f=>`<li>${f}</li>`).join('')}</ul>
+      <div class="da">
+        <button class="dby" onclick="tst('Checkout coming soon!')">BUY NOW — ${l.price}</button>
+        <button class="dadd" onclick="addToCart('${l.id}');closeDetail()">+ ADD TO CART</button>
+        <button class="dwi" id="fmbtn" onclick="toggleFav('${l.id}');this.textContent=FAVS.includes('${l.id}')?'♥ SAVED':'♡ SAVE'">${fav?'♥ SAVED':'♡ SAVE'}</button>
+      </div>
+    </div>`;
+  document.getElementById('dOv').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeDetail(){document.getElementById('dOv').classList.remove('open');document.body.style.overflow='';}
+
+// ══════════════════════════════════════════════════
+// OVERLAY HELPERS
+// ══════════════════════════════════════════════════
+function oOv(id){document.getElementById(id).classList.add('open');document.body.style.overflow='hidden';}
+function cOv(id){document.getElementById(id).classList.remove('open');document.body.style.overflow='';}
+function swOv(a,b){cOv(a);oOv(b);}
+document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o){o.classList.remove('open');document.body.style.overflow='';}},true));
+document.getElementById('dOv').addEventListener('click',e=>{if(e.target===document.getElementById('dOv'))closeDetail();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.ov.open').forEach(el=>el.classList.remove('open'));closeDetail();document.body.style.overflow='';}});
+
+// ══════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════
+function tst(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3200);}
+
+// ══════════════════════════════════════════════════
+// CURSOR
+// ══════════════════════════════════════════════════
+const cr=document.getElementById('cur'),crr=document.getElementById('cur-r');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{
+  mx=e.clientX;my=e.clientY;
+  cr.style.left=mx+'px';cr.style.top=my+'px';
+  const sp=document.getElementById('spl');
+  const hr=document.getElementById('hero').getBoundingClientRect();
+  if(e.clientY<hr.bottom){sp.style.left=(mx-hr.left)+'px';sp.style.top=(my-hr.top)+'px';}
+});
+(function raf(){rx+=(mx-rx)*.11;ry+=(my-ry)*.11;crr.style.left=rx+'px';crr.style.top=ry+'px';requestAnimationFrame(raf);})();
+
+// ══════════════════════════════════════════════════
+// CANVAS PARTICLES
+// ══════════════════════════════════════════════════
+const hcv=document.getElementById('hcv'),hctx=hcv.getContext('2d');
+let W,H,pts=[];
+function rsz(){W=hcv.width=hcv.offsetWidth;H=hcv.height=hcv.offsetHeight;}
+function iPts(){pts=Array.from({length:50},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.1+.25,a:Math.random()*.35+.07}));}
+let cmx=400,cmy=300;
+document.getElementById('hero').addEventListener('mousemove',e=>{const r=hcv.getBoundingClientRect();cmx=e.clientX-r.left;cmy=e.clientY-r.top;});
+function drawPts(){
+  hctx.clearRect(0,0,W,H);
+  pts.forEach(p=>{
+    p.vx+=(cmx-p.x)*.000028;p.vy+=(cmy-p.y)*.000028;p.vx*=.992;p.vy*=.992;
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;
+    hctx.beginPath();hctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    hctx.fillStyle=`rgba(255,255,255,${p.a})`;hctx.fill();
+  });
+  for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){
+    const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.hypot(dx,dy);
+    if(d<95){hctx.beginPath();hctx.moveTo(pts[i].x,pts[i].y);hctx.lineTo(pts[j].x,pts[j].y);hctx.strokeStyle=`rgba(255,255,255,${.038*(1-d/95)})`;hctx.lineWidth=.5;hctx.stroke();}
+  }
+  requestAnimationFrame(drawPts);
+}
+window.addEventListener('resize',()=>{rsz();iPts();});
+rsz();
+
+// ══════════════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════════════
+(async()=>{
+  startCinematic();
+  loadLaptops(); // load from DB (shows skeletons meanwhile)
+  await initAuth();
+})();
+</script>
+</body>
+</html>
